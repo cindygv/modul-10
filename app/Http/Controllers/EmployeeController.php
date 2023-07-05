@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Validator;
 // use Illuminate\Support\Facades\DB;
 use App\Models\Employee;
 use App\Models\Position;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class EmployeeController extends Controller
 {
@@ -53,6 +55,17 @@ class EmployeeController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        // Get File
+        $file = $request->file('cv');
+
+        if ($file != null) {
+            $originalFilename = $file->getClientOriginalName();
+            $encryptedFilename = $file->hashName();
+
+            // Store File
+            $file->store('public/files');
+        }
+
         // ELOQUENT
         $employee = New Employee;
         $employee->firstname = $request->firstName;
@@ -60,8 +73,13 @@ class EmployeeController extends Controller
         $employee->email = $request->email;
         $employee->age = $request->age;
         $employee->position_id = $request->position;
-        $employee->save();
 
+        if ($file != null) {
+            $employee->original_filename = $originalFilename;
+            $employee->encrypted_filename = $encryptedFilename;
+        }
+
+        $employee->save();
 
         return redirect()->route('employees.index');
     }
@@ -87,46 +105,84 @@ class EmployeeController extends Controller
         return view('employee.edit', compact('pageTitle', 'positions', 'employee'));
     }
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
         $messages = [
-            'required' => ':Attribute harus diisi.',
-            'email' => 'Isi :attribute dengan format yang benar',
-            'numeric' => 'Isi :attribute dengan angka'
-        ];
+        'required' => ':Attribute harus diisi.',
+        'email' => 'Isi :attribute dengan format yang benar',
+        'numeric' => 'Isi :attribute dengan angka'];
 
         $validator = Validator::make($request->all(), [
-            'firstName' => 'required',
-            'lastName' => 'required',
-            'email' => 'required|email',
-            'age' => 'required|numeric',
+        'firstName' => 'required',
+        'lastName' => 'required',
+        'email' => 'required|email',
+        'age' => 'required|numeric',
         ], $messages);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        // Get File
+        $file = $request->file('cv');
+
+        if ($file != null) {
+            $originalFilename = $file->getClientOriginalName();
+            $encryptedFilename = $file->hashName();
+
+        // Store File
+        $file->store('public/files');
+
+        $employee = Employee::find($id);
+        if ($employee->encrypted_filename) {
+            Storage::delete('public/files/'.$employee->encrypted_filename);
+            }
+        }
+
         // ELOQUENT
         $employee = Employee::find($id);
-        $employee->firstname = $request->firstName;
-        $employee->lastname = $request->lastName;
-        $employee->email = $request->email;
-        $employee->age = $request->age;
-        $employee->position_id = $request->position;
+        $employee->firstname = $request->input('firstName');
+        $employee->lastname = $request->input('lastName');
+        $employee->email = $request->input('email');
+        $employee->age = $request->input('age');
+        $employee->position_id = $request->input('position');
+
+        if ($file != null) {
+            $employee->original_filename = $originalFilename;
+            $employee->encrypted_filename = $encryptedFilename;
+        }
+
         $employee->save();
 
         return redirect()->route('employees.index');
     }
+
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(string $id)
     {
-    // ELOQUENT
-    Employee::find($id)->delete();
+        // ELOQUENT
+        $employee = Employee::find($id);
 
-    return redirect()->route('employees.index');
+        if ($employee->encrypted_filename) {
+            Storage::delete('public/files/'.$employee->encrypted_filename);
+        }
+
+        $employee->delete();
+
+        return redirect()->route('employees.index');
     }
 
+    public function downloadFile($employeeId)
+    {
+        $employee = Employee::find($employeeId);
+        $encryptedFilename = 'public/files/'.$employee->encrypted_filename;
+        $downloadFilename = Str::lower($employee->firstname.'_'.$employee->lastname.'_cv.pdf');
+
+        if(Storage::exists($encryptedFilename)) {
+            return Storage::download($encryptedFilename, $downloadFilename);
+        }
+    }
 }

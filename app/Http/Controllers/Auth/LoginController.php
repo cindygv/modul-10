@@ -40,6 +40,10 @@ class LoginController extends Controller
         $this->middleware('guest')->except('logout');
     }
 
+    public function login(){
+        $pageTitle = 'Login';
+        return view ('auth.login', compact('pageTitle'));
+    }
     // authenticate manual
     public function authenticate(Request $request)
     {

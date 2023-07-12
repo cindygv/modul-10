@@ -1,6 +1,8 @@
-@extends('layouts.app')
+@vite('resources/sass/app.scss')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
-@section('content')
+
+<body class="bg-primary">
     <div class="container-sm my-5 col-6">
         <div class="row justify-content-center">
             <div class="container-sm mt-5">
@@ -54,4 +56,5 @@
         </div>
         </form>
     </div>
-@endsection
+    @vite('resources/js/app.js')
+</body>

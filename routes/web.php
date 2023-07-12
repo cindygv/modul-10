@@ -31,12 +31,17 @@ Auth::routes();
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/home', [HomeController::class, 'index'])->name('home');
-    Route::get('profile', ProfileController::class)->name('profile');
+    Route::get('profile', [ProfileController::class, '__invoke'])->name('profile');
     Route::resource('employees', EmployeeController::class);
 });
 
-Route::post('/login', [LoginController::class, 'authenticate'])
-    ->middleware('guest');
+
+
+Route::middleware(['guest'])->group(function () {
+
+    Route::get('/login', [LoginController::class, 'login'])->name('login');
+    Route::post('/login', [LoginController::class, 'authenticate']);
+});
 
     Route::get('/local-disk', function() {
         Storage::disk('local')->put('local-example.txt', 'This is local example content');
@@ -112,3 +117,9 @@ Route::post('/login', [LoginController::class, 'authenticate'])
     });
 
     Route::get('download-file/{employeeId}', [EmployeeController::class, 'downloadFile'])->name('employees.downloadFile');
+
+    Route::get('getEmployees', [EmployeeController::class, 'getData'])->name('employees.getData');
+
+    Route::get('exportExcel', [EmployeeController::class, 'exportExcel'])->name('employees.exportExcel');
+
+    Route::get('exportPdf', [EmployeeController::class, 'exportPdf'])->name('employees.exportPdf');
